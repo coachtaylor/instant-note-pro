@@ -1,19 +1,24 @@
 {
-  "name": "highlight-to-note-ai",
-  "displayName": "Highlight to note ai",
+  "name": "instant-note-pro-ai",
+  "displayName": "Instant Note Pro AI",
   "version": "0.0.1",
-  "description": "A basic Plasmo extension.",
-  "author": "taylor coachtaylorp04",
+  "description": "Your intelligent reading assistant - save highlights and get AI summaries instantly",
+  "author": "Taylor Pangilinan",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
     "package": "plasmo package"
   },
   "dependencies": {
-    "plasmo": "0.90.5",
+    "@mozilla/readability": "^0.5.0",
+    "@plasmohq/storage": "^1.9.0",
+    "date-fns": "^3.3.1",
+    "framer-motion": "^11.0.3",
+    "lucide-react": "^0.344.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "tailwindcss": "3.4.1"
+    "react-hot-toast": "^2.4.1",
+    "react-window": "^1.8.10"
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "4.1.1",
@@ -21,13 +26,45 @@
     "@types/node": "20.11.5",
     "@types/react": "18.2.48",
     "@types/react-dom": "18.2.18",
-    "postcss": "8.4.33",
+    "autoprefixer": "^10.4.17",
+    "plasmo": "0.84.0",
+    "postcss": "^8.4.33",
     "prettier": "3.2.4",
+    "tailwindcss": "^3.4.1",
     "typescript": "5.3.3"
   },
   "manifest": {
+    "permissions": [
+      "storage",
+      "tabs",
+      "contextMenus",
+      "activeTab",
+      "notifications"
+    ],
     "host_permissions": [
-      "https://*/*"
-    ]
+      "<all_urls>"
+    ],
+    "commands": {
+      "_execute_action": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+Y",
+          "mac": "Command+Shift+Y"
+        }
+      },
+      "save-highlight": {
+        "suggested_key": {
+          "default": "Ctrl+1",
+          "mac": "Command+1"
+        },
+        "description": "Save highlighted text"
+      },
+      "summarize-page": {
+        "suggested_key": {
+          "default": "Ctrl+2",
+          "mac": "Command+2"
+        },
+        "description": "Summarize current page"
+      }
+    }
   }
 }
