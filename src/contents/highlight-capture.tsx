@@ -1,5 +1,4 @@
 import type { PlasmoCSConfig } from "plasmo"
-import { useState, useEffect, useRef } from "react"
 import { MessageService } from "../services/messages"
 
 export const config: PlasmoCSConfig = {
@@ -147,10 +146,14 @@ export const getStyle = () => {
 const createTooltipElement = (x: number, y: number, text: string, onClick: () => void) => {
   const tooltip = document.createElement('div')
   tooltip.className = 'instant-note-pro-tooltip'
+  
+  // Adjust position to ensure tooltip stays within viewport
+  const adjustedPosition = adjustTooltipPosition(x, y)
+  
   tooltip.style.cssText = `
     position: fixed !important;
-    left: ${x}px !important;
-    top: ${y}px !important;
+    left: ${adjustedPosition.x}px !important;
+    top: ${adjustedPosition.y}px !important;
     transform: translate(-50%, -100%) !important;
     z-index: 2147483647 !important;
   `
@@ -170,6 +173,41 @@ const createTooltipElement = (x: number, y: number, text: string, onClick: () =>
   return tooltip
 }
 
+// Adjust tooltip position to stay within viewport
+const adjustTooltipPosition = (x: number, y: number) => {
+  const viewport = {
+    width: window.innerWidth,
+    height: window.innerHeight
+  }
+  
+  // Estimate tooltip dimensions (adjust based on actual tooltip size)
+  const tooltipWidth = 200 // Approximate width
+  const tooltipHeight = 40 // Approximate height
+  
+  let adjustedX = x
+  let adjustedY = y
+  
+  // Adjust horizontal position to prevent overflow
+  if (x - tooltipWidth / 2 < 10) {
+    // Too close to left edge
+    adjustedX = tooltipWidth / 2 + 10
+  } else if (x + tooltipWidth / 2 > viewport.width - 10) {
+    // Too close to right edge
+    adjustedX = viewport.width - tooltipWidth / 2 - 10
+  }
+  
+  // Adjust vertical position to prevent overflow
+  if (y - tooltipHeight < 10) {
+    // Too close to top edge - show below selection
+    adjustedY = y + tooltipHeight + 10
+  } else if (y > viewport.height - 10) {
+    // Too close to bottom edge
+    adjustedY = viewport.height - tooltipHeight - 10
+  }
+  
+  return { x: adjustedX, y: adjustedY }
+}
+
 // Creates a success notification element
 const createSuccessElement = () => {
   const notification = document.createElement('div')
@@ -184,267 +222,247 @@ const createSuccessElement = () => {
   return notification
 }
 
-const HighlightCapture = () => {
-  console.log("HighlightCapture mounted")
-  
-  // References to the DOM elements
-  const tooltipRef = useRef<HTMLDivElement | null>(null)
-  const successRef = useRef<HTMLDivElement | null>(null)
-  const successTimeoutRef = useRef<NodeJS.Timeout>()
-  const mouseUpTimeoutRef = useRef<NodeJS.Timeout>()
-  
-  // Tracking references
-  const lastSelectionRef = useRef<string>("")
-  const tooltipClickedRef = useRef<boolean>(false)
-  const currentSelectionTextRef = useRef<string>("")
-  
-  // Inject the styles when the component mounts
-  useEffect(() => {
-    const style = getStyle()
-    document.head.appendChild(style)
-    
-    return () => {
-      if (style && document.head.contains(style)) {
-        style.remove()
-      }
-    }
-  }, [])
-  
-  // Clean up the tooltip when component unmounts
-  useEffect(() => {
-    return () => {
-      if (tooltipRef.current && document.body.contains(tooltipRef.current)) {
-        document.body.removeChild(tooltipRef.current)
-      }
-      
-      if (successRef.current && document.body.contains(successRef.current)) {
-        document.body.removeChild(successRef.current)
-      }
-      
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current)
-      }
-      
-      if (mouseUpTimeoutRef.current) {
-        clearTimeout(mouseUpTimeoutRef.current)
-      }
-    }
-  }, [])
-  
-  // Get selection details
-  const getSelectionDetails = () => {
-    const selection = window.getSelection()
-    const text = selection?.toString().trim() || ""
-    
-    if (text && selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-      
-      return {
-        text,
-        rect
-      }
-    }
-    
+// Main content script logic using vanilla JavaScript
+console.log("HighlightCapture mounted")
+
+// References to the DOM elements
+let tooltipElement: HTMLDivElement | null = null
+let successElement: HTMLDivElement | null = null
+let successTimeout: NodeJS.Timeout | null = null
+let mouseUpTimeout: NodeJS.Timeout | null = null
+
+// Tracking references
+let lastSelectionText = ""
+let tooltipClicked = false
+let currentSelectionText = ""
+
+// Get selection details
+const getSelectionDetails = () => {
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) {
     return null
   }
+
+  const text = selection.toString().trim()
+  if (!text) {
+    return null
+  }
+
+  const range = selection.getRangeAt(0)
+  const rect = range.getBoundingClientRect()
+
+  // Don't show tooltip for selections in input fields
+  const activeElement = document.activeElement as HTMLElement
+  if (activeElement && (
+    activeElement.tagName === 'INPUT' ||
+    activeElement.tagName === 'TEXTAREA' ||
+    activeElement.contentEditable === 'true'
+  )) {
+    return null
+  }
+
+  return {
+    text,
+    rect: {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height
+    }
+  }
+}
+
+// Show tooltip for current selection
+const showTooltipForSelection = () => {
+  // Remove existing tooltip if it exists
+  if (tooltipElement && document.body.contains(tooltipElement)) {
+    document.body.removeChild(tooltipElement)
+    tooltipElement = null
+  }
   
-  // Show tooltip for current selection
-  const showTooltipForSelection = () => {
-    // Remove existing tooltip if it exists
-    if (tooltipRef.current && document.body.contains(tooltipRef.current)) {
-      document.body.removeChild(tooltipRef.current)
-      tooltipRef.current = null
+  const details = getSelectionDetails()
+  
+  if (details) {
+    // If we just clicked the tooltip to save a note, don't immediately show it again
+    if (tooltipClicked) {
+      return
     }
     
+    // Update the last selection ref
+    lastSelectionText = details.text
+    currentSelectionText = details.text
+    
+    // Create and add the tooltip
+    const tooltipEl = createTooltipElement(
+      details.rect.left + details.rect.width / 2,
+      details.rect.top - 10,
+      details.text,
+      handleTooltipClick
+    )
+    
+    document.body.appendChild(tooltipEl)
+    tooltipElement = tooltipEl
+  }
+}
+
+// Hide the tooltip
+const hideTooltip = () => {
+  if (tooltipElement && document.body.contains(tooltipElement)) {
+    document.body.removeChild(tooltipElement)
+    tooltipElement = null
+  }
+}
+
+// Show success notification
+const showSuccessNotification = () => {
+  if (successElement && document.body.contains(successElement)) {
+    document.body.removeChild(successElement)
+  }
+  
+  const successEl = createSuccessElement()
+  document.body.appendChild(successEl)
+  successElement = successEl
+  
+  if (successTimeout) {
+    clearTimeout(successTimeout)
+  }
+  
+  successTimeout = setTimeout(() => {
+    if (successElement && document.body.contains(successElement)) {
+      successElement.classList.add('fade-out')
+      setTimeout(() => {
+        if (successElement && document.body.contains(successElement)) {
+          document.body.removeChild(successElement)
+          successElement = null
+        }
+      }, 300)
+    }
+  }, 2000)
+}
+
+// Save note to background
+const saveNote = async (text: string) => {
+  try {
+    // Send message to background script
+    const response = await MessageService.sendToBackground("SAVE_NOTE", {
+      text,
+      url: window.location.href,
+      domain: window.location.hostname,
+      title: document.title,
+      timestamp: Date.now()
+    })
+
+    if (response && response.success) {
+      showSuccessNotification()
+      console.log("Note saved:", text)
+    } else {
+      console.error("Failed to save note:", response?.error)
+    }
+  } catch (error) {
+    console.error("Error saving note:", error)
+  }
+}
+
+// Handle tooltip click
+const handleTooltipClick = () => {
+  const text = currentSelectionText
+  console.log("Tooltip clicked, saving:", text)
+  
+  if (text) {
+    saveNote(text)
+    hideTooltip()
+    
+    // Set the tooltip clicked flag to prevent immediately showing it again
+    tooltipClicked = true
+    
+    // Clear the current selection
+    window.getSelection()?.removeAllRanges()
+  }
+}
+
+// Handler for mouse up event
+const handleMouseUp = (event: MouseEvent) => {
+  // Don't process if the click was on the tooltip itself
+  if (tooltipElement && tooltipElement.contains(event.target as Node)) {
+    return
+  }
+  
+  // Clear any existing timeout
+  if (mouseUpTimeout) {
+    clearTimeout(mouseUpTimeout)
+  }
+  
+  // Delay checking for selection to ensure it's complete
+  mouseUpTimeout = setTimeout(() => {
     const details = getSelectionDetails()
     
     if (details) {
-      // If we just clicked the tooltip to save a note, don't immediately show it again
-      if (tooltipClickedRef.current) {
-        return
-      }
+      // Reset the tooltip clicked flag
+      tooltipClicked = false
       
-      // Update the last selection ref
-      lastSelectionRef.current = details.text
-      currentSelectionTextRef.current = details.text
-      
-      // Create and add the tooltip
-      const tooltipElement = createTooltipElement(
-        details.rect.left + details.rect.width / 2,
-        details.rect.top - 10,
-        details.text,
-        handleTooltipClick
-      )
-      
-      document.body.appendChild(tooltipElement)
-      tooltipRef.current = tooltipElement
-    }
-  }
-  
-  // Hide the tooltip
-  const hideTooltip = () => {
-    if (tooltipRef.current && document.body.contains(tooltipRef.current)) {
-      document.body.removeChild(tooltipRef.current)
-      tooltipRef.current = null
-    }
-  }
-  
-  // Show success notification
-  const showSuccessNotification = () => {
-    if (successRef.current && document.body.contains(successRef.current)) {
-      document.body.removeChild(successRef.current)
-    }
-    
-    const successElement = createSuccessElement()
-    document.body.appendChild(successElement)
-    successRef.current = successElement
-    
-    if (successTimeoutRef.current) {
-      clearTimeout(successTimeoutRef.current)
-    }
-    
-    successTimeoutRef.current = setTimeout(() => {
-      if (successRef.current && document.body.contains(successRef.current)) {
-        successRef.current.classList.add('fade-out')
-        setTimeout(() => {
-          if (successRef.current && document.body.contains(successRef.current)) {
-            document.body.removeChild(successRef.current)
-            successRef.current = null
-          }
-        }, 300)
-      }
-    }, 2000)
-  }
-
-  // Save note to background
-  const saveNote = async (text: string) => {
-    try {
-      // Send message to background script
-      const response = await MessageService.sendToBackground("SAVE_NOTE", {
-        text,
-        url: window.location.href,
-        domain: window.location.hostname,
-        title: document.title,
-        timestamp: Date.now()
-      })
-
-      if (response && response.success) {
-        showSuccessNotification()
-        console.log("Note saved:", text)
-      } else {
-        console.error("Failed to save note:", response?.error)
-      }
-    } catch (error) {
-      console.error("Error saving note:", error)
-    }
-  }
-
-  // Handle tooltip click
-  const handleTooltipClick = () => {
-    const text = currentSelectionTextRef.current
-    console.log("Tooltip clicked, saving:", text)
-    
-    if (text) {
-      saveNote(text)
-      hideTooltip()
-      
-      // Set the tooltip clicked flag to prevent immediately showing it again
-      tooltipClickedRef.current = true
-      
-      // Clear the current selection
-      window.getSelection()?.removeAllRanges()
-    }
-  }
-  
-  // Set up event listeners
-  useEffect(() => {
-    // Handler for mouse up event
-    const handleMouseUp = (event: MouseEvent) => {
-      // Don't process if the click was on the tooltip itself
-      if (tooltipRef.current && tooltipRef.current.contains(event.target as Node)) {
-        return
-      }
-      
-      // Clear any existing timeout
-      if (mouseUpTimeoutRef.current) {
-        clearTimeout(mouseUpTimeoutRef.current)
-      }
-      
-      // Delay checking for selection to ensure it's complete
-      mouseUpTimeoutRef.current = setTimeout(() => {
-        const details = getSelectionDetails()
-        
-        if (details) {
-          // Reset the tooltip clicked flag
-          tooltipClickedRef.current = false
-          
-          // Show the tooltip
-          showTooltipForSelection()
-        } else {
-          // Only hide if we didn't just click the tooltip
-          if (!tooltipClickedRef.current) {
-            hideTooltip()
-          }
-        }
-      }, 50) // Small delay to ensure selection is complete
-    }
-    
-    // Handler for clicks outside the tooltip
-    const handleDocumentClick = (event: MouseEvent) => {
-      // Don't hide if clicking on the tooltip
-      if (tooltipRef.current && tooltipRef.current.contains(event.target as Node)) {
-        return
-      }
-      
-      // Check if we have a selection after the click
-      const selection = window.getSelection()
-      const text = selection?.toString().trim()
-      
-      // If no text is selected, hide the tooltip
-      if (!text) {
+      // Show the tooltip
+      showTooltipForSelection()
+    } else {
+      // Only hide if we didn't just click the tooltip
+      if (!tooltipClicked) {
         hideTooltip()
       }
     }
-    
-    // Handler for keyboard shortcuts
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for Cmd+1 (Mac) or Ctrl+1 (Windows/Linux)
-      if ((e.metaKey || e.ctrlKey) && e.key === '1') {
-        const details = getSelectionDetails()
-        
-        if (details) {
-          currentSelectionTextRef.current = details.text
-          saveNote(details.text)
-          hideTooltip()
-          tooltipClickedRef.current = true
-          window.getSelection()?.removeAllRanges()
-        }
-      }
-    }
-    
-    // Attach event listeners
-    document.addEventListener("mouseup", handleMouseUp)
-    document.addEventListener("click", handleDocumentClick)
-    document.addEventListener('keydown', handleKeyDown)
-    
-    return () => {
-      document.removeEventListener("mouseup", handleMouseUp)
-      document.removeEventListener("click", handleDocumentClick)
-      document.removeEventListener('keydown', handleKeyDown)
-      
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current)
-      }
-      
-      if (mouseUpTimeoutRef.current) {
-        clearTimeout(mouseUpTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  // We don't return any JSX elements because we're creating and appending elements directly to the DOM
-  return null
+  }, 50) // Small delay to ensure selection is complete
 }
 
-export default HighlightCapture
+// Handler for clicks outside the tooltip
+const handleDocumentClick = (event: MouseEvent) => {
+  // Don't hide if clicking on the tooltip
+  if (tooltipElement && tooltipElement.contains(event.target as Node)) {
+    return
+  }
+  
+  // Check if we have a selection after the click
+  const selection = window.getSelection()
+  const text = selection?.toString().trim()
+  
+  // If no text is selected, hide the tooltip
+  if (!text) {
+    hideTooltip()
+  }
+}
+
+// Handler for keyboard shortcuts
+const handleKeyDown = (e: KeyboardEvent) => {
+  // Check for Cmd+1 (Mac) or Ctrl+1 (Windows/Linux)
+  if ((e.metaKey || e.ctrlKey) && e.key === '1') {
+    const details = getSelectionDetails()
+    
+    if (details) {
+      currentSelectionText = details.text
+      saveNote(details.text)
+      hideTooltip()
+      tooltipClicked = true
+      window.getSelection()?.removeAllRanges()
+    }
+  }
+}
+
+// Attach event listeners
+document.addEventListener("mouseup", handleMouseUp)
+document.addEventListener("click", handleDocumentClick)
+document.addEventListener('keydown', handleKeyDown)
+
+// Cleanup function (called when content script is unloaded)
+const cleanup = () => {
+  document.removeEventListener("mouseup", handleMouseUp)
+  document.removeEventListener("click", handleDocumentClick)
+  document.removeEventListener('keydown', handleKeyDown)
+  
+  if (successTimeout) {
+    clearTimeout(successTimeout)
+  }
+  
+  if (mouseUpTimeout) {
+    clearTimeout(mouseUpTimeout)
+  }
+}
+
+// Export cleanup for Plasmo
+export { cleanup }

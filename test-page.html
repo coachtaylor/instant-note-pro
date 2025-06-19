@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Note Pro - Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .code-block {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .link {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        .emoji-text {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Instant Note Pro - Test Page</h1>
+    <p>This page is designed to test all aspects of the Instant Note Pro extension. Try selecting different types of text to see how the tooltip behaves.</p>
+
+    <div class="test-section">
+        <h2>📝 Basic Text Selection</h2>
+        <p>This is a regular paragraph with normal text. You should be able to select any part of this text and see the tooltip appear. The tooltip should be positioned above the selection and contain the text "Save Note (Cmd+1)".</p>
+        <p>This is another paragraph to test multiple selections. Try selecting text from different paragraphs to see how the tooltip behaves when you move between selections.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>💻 Code Selection</h2>
+        <p>Here's some code to test:</p>
+        <div class="code-block">
+function testCodeSelection() {
+    console.log("This is a test function");
+    return "Hello, World!";
+}
+        </div>
+        <p>And some inline code: <code>const test = "inline code";</code></p>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 Link Text</h2>
+        <p>This paragraph contains a <a href="#" class="link">link to test</a> and some regular text. Try selecting text that includes the link to see how it behaves.</p>
+        <p>You can also try selecting just the link text or just the regular text.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Form Fields (Should be Limited)</h2>
+        <p>Try selecting text in these input fields - the tooltip should not appear:</p>
+        <input type="text" class="input-field" value="This is input text" placeholder="Try selecting this text">
+        <textarea class="input-field" rows="3" placeholder="This is a textarea. Try selecting text here.">This is textarea content that you can try to select.</textarea>
+    </div>
+
+    <div class="test-section">
+        <h2>📏 Long Text Selection</h2>
+        <p>This is a very long paragraph designed to test how the extension handles large text selections. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>😀 Special Characters & Emojis</h2>
+        <p class="emoji-text">This text contains emojis: 🚀 🎉 💻 📱 ✨ and special characters: © ® ™ € £ ¥ § ¶ † ‡ • – — … " ' ` ~ ! @ # $ % ^ & * ( ) _ + - = [ ] { } | \ : ; " ' < > , . ? /</p>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Edge Cases</h2>
+        <p>Try these edge cases:</p>
+        <ul>
+            <li>Select only whitespace (should not show tooltip)</li>
+            <li>Select text at the very top of the page</li>
+            <li>Select text at the very bottom of the page</li>
+            <li>Select text near the left edge</li>
+            <li>Select text near the right edge</li>
+            <li>Select text in a scrollable area</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>⌨️ Keyboard Shortcuts</h2>
+        <p>Test the keyboard shortcuts:</p>
+        <ul>
+            <li>Select some text and press <strong>Ctrl+1</strong> (or <strong>Cmd+1</strong> on Mac)</li>
+            <li>The note should be saved without clicking the tooltip</li>
+            <li>You should see a success notification</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Extension Popup Test</h2>
+        <p>After saving some notes, click the extension icon in your browser toolbar to test the popup functionality:</p>
+        <ul>
+            <li>Popup should open quickly</li>
+            <li>Saved notes should be visible</li>
+            <li>Search functionality should work</li>
+            <li>Dark mode toggle should work</li>
+            <li>Import/export should work</li>
+        </ul>
+    </div>
+
+    <script>
+        // Add some dynamic content to test
+        setTimeout(() => {
+            const dynamicSection = document.createElement('div');
+            dynamicSection.className = 'test-section';
+            dynamicSection.innerHTML = `
+                <h2>⚡ Dynamic Content</h2>
+                <p>This content was added dynamically after the page loaded. Test selecting text in this section to ensure the extension works with dynamically added content.</p>
+                <p>This is important for testing on sites that use JavaScript frameworks like React, Vue, or Angular.</p>
+            `;
+            document.body.appendChild(dynamicSection);
+        }, 2000);
+
+        // Console logging for debugging
+        console.log('🧪 Test page loaded');
+        console.log('📋 Test functions available:');
+        console.log('- Select text to see tooltip');
+        console.log('- Press Ctrl+1/Cmd+1 to save without tooltip');
+        console.log('- Check extension popup for saved notes');
+    </script>
+</body>
+</html> 
