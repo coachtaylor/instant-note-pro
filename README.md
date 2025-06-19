@@ -46,7 +46,9 @@ src/
 ├── contents/
 │   └── highlight-capture.tsx    # Main content script with tooltip
 ├── popup/
-│   └── index.tsx                # Main popup interface
+│   ├── index.tsx                # Main popup interface
+│   ├── components/              # UI components
+│   └── hooks/                   # Custom React hooks
 ├── services/
 │   └── storage.ts               # Storage service with CRUD operations
 ├── lib/
@@ -159,20 +161,27 @@ interface StorageResult<T> {
 - ✅ Hover states and interactions
 - ✅ Loading and error states
 
-### Day 5: Advanced Features & Polish 🔄
-**Goal**: Add power-user features
+### Day 5: Advanced Features & Polish ✅
+**Goal**: Add power-user features and dark mode
 
 **Morning Tasks**:
-- 🔄 Implement tag system
-- 🔄 Add bulk selection
-- 🔄 Create export functionality (JSON/CSV)
-- 🔄 Build keyboard navigation
+- ✅ Implement dark mode with persistent storage
+- ✅ Fix Tailwind CSS configuration
+- ✅ Create proper React hooks for data management
+- ✅ Restructure popup component architecture
 
 **Afternoon Tasks**:
-- 🔄 Add dark mode support
-- 🔄 Implement settings page
-- 🔄 Create onboarding flow
-- 🔄 Add success notifications
+- ✅ Add import/export functionality
+- ✅ Implement statistics panel
+- ✅ Fix component prop types and imports
+- ✅ Add smooth animations and transitions
+
+**Key Features**:
+- ✅ Dark/Light mode toggle with Chrome storage sync
+- ✅ Enhanced note management with tags and folders
+- ✅ Import/export JSON functionality
+- ✅ Statistics and analytics
+- ✅ Improved UI/UX with proper styling
 
 ### Day 6: Cross-Browser Testing & Optimization
 **Goal**: Ensure reliability across environments
@@ -199,22 +208,22 @@ interface StorageResult<T> {
 - Prepare screenshots
 
 **Afternoon Tasks**:
-- Final bug fixes
-- Performance optimization
-- Security audit
 - Submit to Chrome Web Store
+- Create landing page
+- Set up analytics
+- Plan marketing strategy
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ and Yarn
+- Node.js 18+ 
+- Yarn or npm
 - Chrome browser
-- Basic knowledge of React and TypeScript
 
 ### Installation
 ```bash
-# Clone repository
-git clone <your-repo-url>
+# Clone the repository
+git clone https://github.com/coachtaylor/instant-note-pro.git
 cd instant-note-pro
 
 # Install dependencies
@@ -222,66 +231,45 @@ yarn install
 
 # Start development server
 yarn dev
-
-# The extension will be built in ./build/chrome-mv3-dev
 ```
 
-### Loading the Extension
-1. Open Chrome and navigate to `chrome://extensions`
+### Loading in Chrome
+1. Open Chrome and go to `chrome://extensions/`
 2. Enable "Developer mode"
 3. Click "Load unpacked"
 4. Select the `build/chrome-mv3-dev` folder
-5. The extension icon should appear in your toolbar
 
-### Development Commands
-```bash
-yarn dev        # Start development server with hot reload
-yarn build      # Build production version
-yarn test       # Run tests
-yarn lint       # Run ESLint
+## 🛠 Development
+
+### Available Scripts
+- `yarn dev` - Start development server with hot reload
+- `yarn build` - Build for production
+- `yarn package` - Create distributable package
+
+### Project Structure
+```
+instant-note-pro/
+├── src/
+│   ├── contents/          # Content scripts
+│   ├── popup/            # Popup interface
+│   ├── services/         # Storage and messaging
+│   └── lib/              # Utilities and types
+├── assets/               # Icons and static assets
+└── build/                # Build output
 ```
 
-## 🐛 Troubleshooting
+## 📝 License
 
-### Common Issues
+MIT License - see LICENSE file for details.
 
-#### Icons Not Loading
-```bash
-# Create required icon files
-mkdir -p assets
-curl -L https://placehold.co/16x16/4F46E5/white/png -o assets/icon16.png
-curl -L https://placehold.co/48x48/4F46E5/white/png -o assets/icon48.png
-curl -L https://placehold.co/128x128/4F46E5/white/png -o assets/icon128.png
-```
+## 🤝 Contributing
 
-#### Build Failures
-```bash
-# Clear cache and rebuild
-rm -rf .plasmo build node_modules/.cache
-yarn install
-yarn dev
-```
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-#### Content Script Not Loading
-- Check console for errors
-- Verify manifest permissions
-- Reload the extension
-- Hard refresh the target webpage
+## 📞 Support
 
-## 📈 Success Metrics
-
-- **Performance**: < 100ms text capture time
-- **Reliability**: 99.9% successful saves
-- **User Experience**: < 3 clicks for any action
-- **Storage**: Support 10,000+ notes
-
-## 🔮 Future Enhancements
-
-- **Phase 2**: AI-powered auto-tagging
-- **Phase 3**: Team collaboration features
-- **Phase 4**: Mobile app companion
-- **Phase 5**: Integration with note-taking apps
-
-## 📄 License
-
-MIT License - feel free to use this project as a starting point for your own extensions! 
+For support, email support@instantnotepro.com or create an issue on GitHub.
