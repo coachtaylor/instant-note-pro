@@ -1,166 +1,314 @@
-import { useState, useEffect } from "react"
-import { Sparkles, Copy, ExternalLink, Trash2 } from "lucide-react"
-import { Storage } from "@plasmohq/storage"
-import { STORAGE_KEYS, LIMITS } from "~lib/constants"
-import type { UsageData, Highlight } from "~lib/types"
-
-import "~base.css"
+import React, { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { useNotes } from "./hooks/useNotes"
+import { useSearch } from "./hooks/useSearch"
+import { SearchBar } from "./components/SearchBar"
+import { NoteList } from "./components/NoteList"
+import { EmptyState } from "./components/EmptyState"
+import type { Note } from "../services/storage"
+import { Download, Settings, Moon, Sun, X, Info, Upload, Trash2 } from "lucide-react"
+import "../base.css"
 
 function IndexPopup() {
-  const [usage, setUsage] = useState<UsageData | null>(null)
-  const [highlights, setHighlights] = useState<Highlight[]>([])
-  const storage = new Storage()
+  const {
+    notes,
+    loading,
+    error,
+    tags,
+    domains,
+    folders,
+    statistics,
+    deleteNote,
+    updateNote,
+    updateNoteTags,
+    toggleFavorite,
+    exportNotes,
+    importNotes
+  } = useNotes()
 
+  const {
+    searchQuery,
+    setSearchQuery,
+    filteredNotes,
+    clearSearch,
+    getSearchSuggestions
+  } = useSearch(notes)
+
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null)
+  const [showNoteModal, setShowNoteModal] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+
+  // Load dark mode preference from storage on mount
   useEffect(() => {
-    loadData()
+    const loadDarkModePreference = async () => {
+      try {
+        const result = await chrome.storage.sync.get(['instant_note_pro_dark_mode'])
+        const savedDarkMode = result.instant_note_pro_dark_mode || false
+        setIsDarkMode(savedDarkMode)
+      } catch (error) {
+        console.error('Failed to load dark mode preference:', error)
+      }
+    }
     
-    // Listen for storage changes
-    const unsubscribe = storage.watch({
-      [STORAGE_KEYS.HIGHLIGHTS]: (h) => setHighlights(h?.newValue || []),
-      [STORAGE_KEYS.USAGE]: (u) => setUsage(u?.newValue)
-    })
-    
-    return () => unsubscribe()
+    loadDarkModePreference()
   }, [])
 
-  async function loadData() {
-    const [usageData, highlightData] = await Promise.all([
-      storage.get<UsageData>(STORAGE_KEYS.USAGE),
-      storage.get<Highlight[]>(STORAGE_KEYS.HIGHLIGHTS)
-    ])
+  // Dark mode toggle
+  const toggleDarkMode = async () => {
+    const newDarkMode = !isDarkMode
+    setIsDarkMode(newDarkMode)
     
-    setUsage(usageData)
-    setHighlights(highlightData || [])
+    try {
+      await chrome.storage.sync.set({ instant_note_pro_dark_mode: newDarkMode })
+    } catch (error) {
+      console.error('Failed to save dark mode preference:', error)
+    }
   }
 
-  async function deleteHighlight(id: string) {
-    const updated = highlights.filter(h => h.id !== id)
-    setHighlights(updated)
-    await storage.set(STORAGE_KEYS.HIGHLIGHTS, updated)
+  // Handler for viewing a note
+  const handleViewNote = (note: Note) => {
+    setSelectedNote(note)
+    setShowNoteModal(true)
   }
 
-  async function copyHighlight(text: string) {
-    await navigator.clipboard.writeText(text)
-    // Show feedback (you could add a toast here)
+  // Handler for closing note view
+  const handleCloseNoteView = () => {
+    setSelectedNote(null)
+    setShowNoteModal(false)
   }
 
-  const remainingHighlights = usage ? usage.highlights.limit - usage.highlights.used : 0
-  const isFreeTier = usage?.tier === "free"
+  // Handler for deleting a note
+  const handleDeleteNote = async (id: string) => {
+    await deleteNote(id)
+    setSelectedNote(null)
+    setShowNoteModal(false)
+  }
+
+  // Handler for exporting notes
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const result = await exportNotes()
+      if (result.success && result.data) {
+        const blob = new Blob([result.data], { type: "application/json" })
+        const url = URL.createObjectURL(blob)
+        
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `instant-note-pro-export-${new Date().toISOString().split('T')[0]}.json`
+        document.body.appendChild(a)
+        a.click()
+        
+        URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
+    } catch (error) {
+      console.error('Export failed:', error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Handler for importing notes
+  const handleImport = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".json"
+    
+    input.onchange = async (e: any) => {
+      try {
+        setImportError(null)
+        
+        const file = e.target.files[0]
+        if (!file) return
+        
+        const reader = new FileReader()
+        reader.onload = async (event) => {
+          try {
+            const jsonString = event.target?.result as string
+            const result = await importNotes(jsonString)
+            
+            if (!result.success) {
+              setImportError(result.error || "Failed to import notes")
+            }
+          } catch (err) {
+            setImportError("Invalid file format")
+          }
+        }
+        
+        reader.readAsText(file)
+      } catch (err) {
+        setImportError("Failed to read file")
+      }
+    }
+    
+    input.click()
+  }
 
   return (
-    <div className="w-[400px] h-[600px] bg-white flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="flex items-center justify-between mb-2">
+    <motion.div 
+      className={`min-w-[350px] max-w-[420px] min-h-[500px] p-4 ${
+        isDarkMode ? 'dark' : ''
+      }`}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="w-full h-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+        <motion.h1 
+          className="text-xl font-bold mb-4 tracking-tight flex items-center justify-between text-blue-700 dark:text-blue-400"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+        >
+          <span>Instant Note Pro</span>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-blue-500" />
-            <h1 className="text-xl font-bold">Instant Note Pro AI</h1>
+            <motion.button
+              onClick={toggleDarkMode}
+              className={`p-2 rounded-md transition-colors ${
+                isDarkMode ? 'text-yellow-400 hover:text-yellow-300 hover:bg-gray-800' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </motion.button>
           </div>
-          <button
-            onClick={() => chrome.runtime.openOptionsPage()}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ⚙️
-          </button>
-        </div>
-        
-        {/* Usage Stats */}
-        {usage && (
-          <div className="flex items-center justify-between text-sm">
-            <div>
-              {usage.tier === "trial" ? (
-                <span className="text-green-600 font-medium">
-                  🎉 Trial: Unlimited for {LIMITS.TRIAL_DAYS} days
-                </span>
-              ) : (
-                <span className="text-gray-600">
-                  {usage.highlights.used}/{usage.highlights.limit} highlights today
-                </span>
-              )}
-            </div>
-            {isFreeTier && remainingHighlights <= 2 && (
-              <button
-                onClick={() => chrome.tabs.create({ url: "/tabs/pricing.html" })}
-                className="text-blue-500 hover:underline text-xs font-medium"
-              >
-                Upgrade
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+        </motion.h1>
 
-      {/* Shortcuts reminder */}
-      <div className="px-4 py-2 bg-gray-50 border-b">
-        <div className="flex items-center justify-between text-xs text-gray-600">
-          <span>💡 Press <kbd className="px-1.5 py-0.5 bg-gray-200 rounded">Ctrl+1</kbd> to save highlights</span>
-        </div>
-      </div>
-
-      {/* Highlights list */}
-      <div className="flex-1 overflow-y-auto">
-        {highlights.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-            <Sparkles className="w-12 h-12 text-gray-300 mb-3" />
-            <p className="text-gray-500 mb-2">No highlights yet!</p>
-            <p className="text-sm text-gray-400">
-              Select any text and press Ctrl+1 to save
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y">
-            {highlights.map((highlight) => (
-              <div key={highlight.id} className="p-3 hover:bg-gray-50 group">
-                <p className="text-sm text-gray-800 line-clamp-3 mb-2">
-                  {highlight.text}
-                </p>
-                <div className="flex items-center justify-between">
-                  
-                    href={highlight.url}
-                    target="_blank"
-                    className="text-xs text-gray-500 hover:text-blue-500 flex items-center gap-1"
+        {/* Stats panel */}
+        <AnimatePresence>
+          {showStats && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="border-b border-gray-200 dark:border-gray-700 overflow-hidden"
+            >
+              <div className="p-4 bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium">Note Statistics</h3>
+                  <button
+                    onClick={() => setShowStats(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
-                    <ExternalLink className="w-3 h-3" />
-                    {new URL(highlight.url).hostname}
-                  </a>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => copyHighlight(highlight.text)}
-                      className="p-1 hover:bg-gray-200 rounded"
-                      title="Copy"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => deleteHighlight(highlight.id)}
-                      className="p-1 hover:bg-gray-200 rounded text-red-500"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Total notes</p>
+                    <p className="text-lg font-semibold">{statistics?.totalNotes || 0}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Total tags</p>
+                    <p className="text-lg font-semibold">{statistics?.totalTags || 0}</p>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Footer */}
-      {isFreeTier && remainingHighlights === 0 && (
-        <div className="p-3 bg-yellow-50 border-t border-yellow-200">
-          <p className="text-xs text-yellow-800 text-center">
-            Daily limit reached! <a 
-              href="#" 
-              onClick={() => chrome.tabs.create({ url: "/tabs/pricing.html" })}
-              className="font-semibold underline"
-            >
-              Upgrade for unlimited
-            </a>
-          </p>
+        {/* Search Bar */}
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onClear={clearSearch}
+          suggestions={getSearchSuggestions()}
+          placeholder="Search notes..."
+          className="mb-4"
+          isDarkMode={isDarkMode}
+        />
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-red-500 dark:text-red-400">{error}</div>
+            </div>
+          ) : filteredNotes.length === 0 ? (
+            <EmptyState 
+              type="no-notes"
+              isDarkMode={isDarkMode}
+            />
+          ) : (
+            <NoteList
+              notes={filteredNotes}
+              onView={handleViewNote}
+              onDelete={handleDeleteNote}
+              isDarkMode={isDarkMode}
+            />
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className="p-2 text-gray-500 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              title="Statistics"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+            
+            <button
+              onClick={handleImport}
+              className="p-2 text-gray-500 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              title="Import notes"
+            >
+              <Upload className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              disabled={isExporting || filteredNotes.length === 0}
+              className="p-2 text-gray-500 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export notes"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Import Error Toast */}
+        <AnimatePresence>
+          {importError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-4 left-4 right-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-3 rounded-lg shadow-lg"
+            >
+              <div className="flex items-center justify-between">
+                <span>{importError}</span>
+                <button
+                  onClick={() => setImportError(null)}
+                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
   )
 }
 
