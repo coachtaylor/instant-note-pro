@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Note Pro - Direct Script Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .highlight-text {
+            background-color: #fef3c7;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Instant Note Pro - Direct Script Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Load the Instant Note Pro extension in Chrome</li>
+            <li>Select any text on this page</li>
+            <li>You should see a "Save Note" button appear</li>
+            <li>Click the button to save the note</li>
+            <li>You should see a success notification</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Sample Text for Testing</h2>
+        <p>This is a sample paragraph that you can select to test the Instant Note Pro extension. The extension should detect when you select text and show a save button.</p>
+        
+        <div class="highlight-text">
+            This highlighted text should be easy to select and test with the extension. Try selecting this text to see if the save button appears.
+        </div>
+        
+        <p>Here's another paragraph with some interesting content about web development and browser extensions. You can select any part of this text to test the functionality.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Keyboard Shortcut Test</h2>
+        <p>You can also test the keyboard shortcut:</p>
+        <ol>
+            <li>Select some text on this page</li>
+            <li>Press <strong>Cmd+1</strong> (Mac) or <strong>Ctrl+1</strong> (Windows/Linux)</li>
+            <li>The selected text should be saved automatically</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Debugging</h2>
+        <p>Open the browser console (F12) to see debug messages from the extension:</p>
+        <ul>
+            <li>Look for messages starting with "Instant Note Pro:"</li>
+            <li>Check for any error messages</li>
+            <li>Verify that the direct content script is loading</li>
+        </ul>
+    </div>
+
+    <script>
+        // Add some console logging to help with debugging
+        console.log("Test page loaded");
+        
+        // Listen for messages from the extension
+        window.addEventListener('message', (event) => {
+            if (event.source === window && event.data.type === 'INSTANT_NOTE_PRO_DEBUG') {
+                console.log('Extension debug message:', event.data.message);
+            }
+        });
+    </script>
+</body>
+</html> 

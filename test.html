@@ -1,0 +1,252 @@
+// test-direct-script.html
+// Save this as a standalone HTML file you can open directly in your browser
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Instant Note Pro - Direct Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 20px;
+    }
+    
+    .test-area {
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin-bottom: 20px;
+      min-height: 200px;
+    }
+    
+    button {
+      background-color: #4F46E5;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    
+    h1 {
+      color: #333;
+    }
+    
+    .instructions {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-left: 4px solid #4F46E5;
+    }
+  </style>
+</head>
+<body>
+  <h1>Instant Note Pro - Direct Test</h1>
+  
+  <div class="instructions">
+    <p>This page lets you test the Save Note button functionality outside of the Chrome extension environment.</p>
+    <p>1. Select some text in the test area below</p>
+    <p>2. The blue Save Note button should appear above your selection</p>
+    <p>3. Click the button to test the click event</p>
+  </div>
+  
+  <button onclick="runTests()">Run All Tests</button>
+  <button onclick="testSaveButton()">Test Button Manually</button>
+  
+  <h2>Test Area (select text here)</h2>
+  <div class="test-area" id="testArea">
+    This is a test paragraph. Select some text here to see if the Save Note button appears above your selection. This is testing the basic selection and button display functionality outside of the Chrome extension environment.
+    
+    The blue Save Note button should appear when you select text, and it should be positioned above your selection. Clicking the button should trigger an alert.
+  </div>
+  
+  <h2>Results:</h2>
+  <div id="results"></div>
+  
+  <script>
+    // Log to page
+    function log(message) {
+      const results = document.getElementById('results');
+      const entry = document.createElement('div');
+      entry.innerHTML = message;
+      results.appendChild(entry);
+      console.log(message);
+    }
+    
+    // Clear logs
+    function clearLogs() {
+      document.getElementById('results').innerHTML = '';
+    }
+    
+    // Save button tracking
+    let currentSaveButton = null;
+    
+    // Create save button
+    function createSaveButton() {
+      log("Creating save button");
+      
+      const button = document.createElement("div");
+      
+      // Apply styles directly
+      Object.assign(button.style, {
+        position: "fixed",
+        zIndex: "9999999",
+        backgroundColor: "#4F46E5",
+        color: "white",
+        padding: "8px 16px",
+        borderRadius: "6px",
+        fontSize: "14px",
+        fontFamily: "Arial, sans-serif",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        transform: "translate(-50%, -100%)"
+      });
+      
+      button.innerHTML = "Save Note (Test)";
+      
+      button.addEventListener("click", () => {
+        log("<strong>Button clicked!</strong>");
+        alert("Save button clicked");
+      });
+      
+      return button;
+    }
+    
+    // Handle selection
+    function handleSelection() {
+      log("Selection event detected");
+      
+      // Remove any existing button
+      if (currentSaveButton && document.body.contains(currentSaveButton)) {
+        document.body.removeChild(currentSaveButton);
+        currentSaveButton = null;
+      }
+      
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      
+      if (text && selection.rangeCount > 0) {
+        log(`Text selected: "${text}"`);
+        
+        // Get position
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        log(`Selection position - Top: ${rect.top}, Left: ${rect.left}, Width: ${rect.width}`);
+        
+        // Create button
+        currentSaveButton = createSaveButton();
+        
+        // Position button
+        currentSaveButton.style.left = `${rect.left + rect.width / 2}px`;
+        currentSaveButton.style.top = `${rect.top - 10}px`;
+        
+        // Add to DOM
+        document.body.appendChild(currentSaveButton);
+        log("<strong>Save button added to DOM</strong>");
+      } else {
+        log("No text selected or invalid selection");
+      }
+    }
+    
+    // Test save button manually
+    function testSaveButton() {
+      clearLogs();
+      log("<strong>Manual Button Test</strong>");
+      
+      // Remove any existing button
+      if (currentSaveButton && document.body.contains(currentSaveButton)) {
+        document.body.removeChild(currentSaveButton);
+        currentSaveButton = null;
+      }
+      
+      // Create and position button
+      currentSaveButton = createSaveButton();
+      currentSaveButton.style.top = "150px";
+      currentSaveButton.style.left = "50%";
+      
+      // Add to DOM
+      document.body.appendChild(currentSaveButton);
+      log("Test button created and positioned");
+    }
+    
+    // Run all tests
+    function runTests() {
+      clearLogs();
+      log("<strong>Running All Tests</strong>");
+      
+      // Test 1: Create test element
+      log("Test 1: Creating test element");
+      const testElement = document.createElement("div");
+      testElement.textContent = "Test Element";
+      
+      Object.assign(testElement.style, {
+        position: "fixed",
+        top: "70px",
+        right: "20px",
+        backgroundColor: "red",
+        color: "white",
+        padding: "5px",
+        zIndex: "9999999",
+        fontSize: "12px"
+      });
+      
+      document.body.appendChild(testElement);
+      log("Test element created and added to DOM");
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        if (document.body.contains(testElement)) {
+          document.body.removeChild(testElement);
+          log("Test element removed after timeout");
+        }
+      }, 3000);
+      
+      // Test 2: Create save button
+      log("Test 2: Creating save button");
+      testSaveButton();
+      
+      // Test 3: Selection simulation
+      log("Test 3: Simulating text selection");
+      const testArea = document.getElementById("testArea");
+      
+      // Create a test selection
+      setTimeout(() => {
+        try {
+          // Clear any existing selection
+          window.getSelection().removeAllRanges();
+          
+          // Create a new range
+          const range = document.createRange();
+          range.setStart(testArea.firstChild, 10);
+          range.setEnd(testArea.firstChild, 20);
+          
+          // Apply the selection
+          const selection = window.getSelection();
+          selection.addRange(range);
+          
+          log("Selection created programmatically");
+          
+          // Trigger selection handler
+          handleSelection();
+        } catch (e) {
+          log(`Error simulating selection: ${e.message}`);
+        }
+      }, 1000);
+    }
+    
+    // Set up event listeners
+    document.addEventListener("mouseup", handleSelection);
+    log("Event listeners attached");
+    
+    // Initial test
+    setTimeout(() => {
+      log("Running initial button test");
+      testSaveButton();
+    }, 500);
+  </script>
+</body>
+</html>

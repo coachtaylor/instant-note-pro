@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Note Pro - Notification Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .highlight-text {
+            background-color: #fef3c7;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .test-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .success-btn {
+            background-color: #10B981;
+            color: white;
+        }
+        .error-btn {
+            background-color: #EF4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Instant Note Pro - Notification Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Load the Instant Note Pro extension in Chrome</li>
+            <li>Select any text on this page</li>
+            <li>You should see a "Save Note" button appear</li>
+            <li>Click the button to save the note</li>
+            <li>You should see a green "Note Saved!" notification on success</li>
+            <li>You should see a red "Note Not Saved" notification on failure</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Notification Test</h2>
+        <p>Click these buttons to test the notification styles:</p>
+        <div class="test-buttons">
+            <button class="test-button success-btn" onclick="showSuccessNotification()">Show Success Notification</button>
+            <button class="test-button error-btn" onclick="showErrorNotification()">Show Error Notification</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Sample Text for Testing</h2>
+        <p>This is a sample paragraph that you can select to test the Instant Note Pro extension. The extension should detect when you select text and show a save button.</p>
+        
+        <div class="highlight-text">
+            This highlighted text should be easy to select and test with the extension. Try selecting this text to see if the save button appears and test the notification system.
+        </div>
+        
+        <p>Here's another paragraph with some interesting content about web development and browser extensions. You can select any part of this text to test the functionality.</p>
+    </div>
+
+    <script>
+        // Test notification functions
+        function showSuccessNotification() {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background-color: #10B981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 9999999;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                animation: slideIn 0.3s ease-out;
+                user-select: none;
+            `;
+            
+            notification.textContent = 'Note Saved!';
+            
+            // Add animation keyframes if not already present
+            if (!document.querySelector('#notification-styles')) {
+                const style = document.createElement('style');
+                style.id = 'notification-styles';
+                style.textContent = `
+                    @keyframes slideIn {
+                        from {
+                            transform: translateX(100%);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+                    }
+                    @keyframes slideOut {
+                        from {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+                        to {
+                            transform: translateX(100%);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        }
+
+        function showErrorNotification() {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background-color: #EF4444;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 9999999;
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                animation: slideIn 0.3s ease-out;
+                user-select: none;
+            `;
+            
+            notification.textContent = 'Note Not Saved';
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 
